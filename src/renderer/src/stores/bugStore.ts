@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, toRaw } from 'vue'
 import type { BugRecord } from '../../../main/types'
 import { useWorkspaceStore } from './workspaceStore'
 
@@ -20,7 +20,7 @@ export const useBugStore = defineStore('bug', () => {
     const ws = useWorkspaceStore()
     if (!ws.path) return
 
-    await window.api.writeBug(ws.path, bug)
+    await window.api.writeBug(ws.path, JSON.parse(JSON.stringify(toRaw(bug))))
     const exists = bugs.value.some((b) => b.id === bug.id)
     if (exists) {
       bugs.value = bugs.value.map((b) => (b.id === bug.id ? bug : b))

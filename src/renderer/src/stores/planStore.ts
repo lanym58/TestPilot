@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, toRaw } from 'vue'
 import type { PlanState } from '../../../main/types'
 import { useWorkspaceStore } from './workspaceStore'
 
@@ -31,7 +31,7 @@ export const usePlanStore = defineStore('plan', () => {
     const ws = useWorkspaceStore()
     if (!ws.path) return
 
-    await window.api.savePlan(ws.path, state)
+    await window.api.savePlan(ws.path, JSON.parse(JSON.stringify(toRaw(state))))
     plans.value = plans.value.map((p) => (p.planId === state.planId ? state : p))
     if (currentPlan.value?.planId === state.planId) {
       currentPlan.value = state

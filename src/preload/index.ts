@@ -3,6 +3,9 @@ import { electronAPI } from '@electron-toolkit/preload'
 import type { BugRecord, FixRecord, TestResult, PlanState, WorkspaceConfig } from '../main/types'
 
 const api = {
+  // App
+  getRecorderPreload: (): Promise<string> => ipcRenderer.invoke('app:getRecorderPreload'),
+
   // Workspace
   openWorkspaceDialog: (): Promise<string | null> => ipcRenderer.invoke('workspace:open'),
   initWorkspace: (path: string, name: string): Promise<WorkspaceConfig> =>

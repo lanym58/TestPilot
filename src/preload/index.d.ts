@@ -2,6 +2,7 @@ import { ElectronAPI } from '@electron-toolkit/preload'
 import type { BugRecord, FixRecord, TestResult, PlanState, WorkspaceConfig } from '../main/types'
 
 interface TestPilotAPI {
+  getRecorderPreload(): Promise<string>
   openWorkspaceDialog(): Promise<string | null>
   initWorkspace(path: string, name: string): Promise<WorkspaceConfig>
   getWorkspaceConfig(path: string): Promise<WorkspaceConfig | null>

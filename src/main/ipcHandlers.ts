@@ -1,18 +1,23 @@
 import { ipcMain, dialog, BrowserWindow, webContents } from 'electron'
+import { join } from 'path'
 import * as fileService from './fileService'
 import type { BugRecord, FixRecord, TestResult, PlanState } from './types'
 
-function safe<T>(fn: () => T | Promise<T>): Promise<{ ok: true; data: T } | { ok: false; error: string }> {
+function safe<T>(fn: () => T | Promise<T>): Promise<T | null> {
   return Promise.resolve()
     .then(fn)
-    .then((data) => ({ ok: true as const, data }))
-    .catch((err: unknown) => ({
-      ok: false as const,
-      error: err instanceof Error ? err.message : '未知错误'
-    }))
+    .catch((err: unknown) => {
+      console.error('[IPC Error]', err instanceof Error ? err.message : err)
+      return null
+    })
 }
 
 export function registerIpcHandlers(): void {
+  // App info
+  ipcMain.handle('app:getRecorderPreload', () => {
+    return join(__dirname, '../preload/recorder.js')
+  })
+
   // Workspace
   ipcMain.handle('workspace:open', async () => {
     const result = await dialog.showOpenDialog({
