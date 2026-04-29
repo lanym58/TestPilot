@@ -19,6 +19,10 @@ interface TestPilotAPI {
   readResult(workspace: string, planId: string, itemId: string): Promise<TestResult | null>
   writeFix(workspace: string, fix: FixRecord): Promise<boolean>
   listFixes(workspace: string): Promise<string[]>
+  watchFixes(workspace: string): Promise<void>
+  stopWatch(): Promise<void>
+  onShortcut(channel: string, callback: () => void): () => void
+  onFixesChanged(callback: (filename: string) => void): () => void
 }
 
 declare global {

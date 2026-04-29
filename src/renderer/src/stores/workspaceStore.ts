@@ -16,6 +16,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       path.value = selected
       config.value = existing
       isOpen.value = true
+      await window.api.watchFixes(selected)
       return true
     }
 
@@ -24,6 +25,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     config.value = await window.api.initWorkspace(selected, name)
     path.value = selected
     isOpen.value = true
+    await window.api.watchFixes(selected)
     return true
   }
 

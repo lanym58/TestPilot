@@ -47,7 +47,24 @@ const api = {
   writeFix: (workspace: string, fix: FixRecord): Promise<boolean> =>
     ipcRenderer.invoke('fix:write', workspace, fix),
   listFixes: (workspace: string): Promise<string[]> =>
-    ipcRenderer.invoke('fix:list', workspace)
+    ipcRenderer.invoke('fix:list', workspace),
+
+  // Watch
+  watchFixes: (workspace: string): Promise<void> =>
+    ipcRenderer.invoke('watch:fixes', workspace),
+  stopWatch: (): Promise<void> =>
+    ipcRenderer.invoke('watch:stop'),
+
+  // Events from main process
+  onShortcut: (channel: string, callback: () => void) => {
+    ipcRenderer.on(channel, callback)
+    return () => ipcRenderer.removeListener(channel, callback)
+  },
+  onFixesChanged: (callback: (filename: string) => void) => {
+    const handler = (_e: unknown, filename: string) => callback(filename)
+    ipcRenderer.on('fixes:changed', handler)
+    return () => ipcRenderer.removeListener('fixes:changed', handler)
+  }
 }
 
 if (process.contextIsolated) {
