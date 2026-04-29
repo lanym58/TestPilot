@@ -1,13 +1,19 @@
 <script setup lang="ts">
+import { ElMessageBox } from 'element-plus'
 import { useSessionStore } from '../stores/sessionStore'
 import { formatAction } from '../utils/actionFormatter'
 
 const session = useSessionStore()
 
-function addManualStep(): void {
-  const description = window.prompt('输入观察步骤描述：')
-  if (!description) return
-  session.addAction({ type: 'observe', description, timestamp: Date.now() })
+async function addManualStep(): Promise<void> {
+  try {
+    const { value } = await ElMessageBox.prompt('输入观察步骤描述：', '添加手动步骤', {
+      confirmButtonText: '添加',
+      cancelButtonText: '取消'
+    })
+    if (!value?.trim()) return
+    session.addAction({ type: 'observe', description: value.trim(), timestamp: Date.now() })
+  } catch { /* cancelled */ }
 }
 
 function removeStep(seq: number): void {

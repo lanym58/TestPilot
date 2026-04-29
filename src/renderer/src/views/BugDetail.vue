@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, toRaw } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { toRaw } from 'vue'
 import { useBugStore } from '../stores/bugStore'
-import { useWorkspaceStore } from '../stores/workspaceStore'
-import type { BugStatus, BugSeverity } from '../../../main/types'
+import type { BugRecord, BugStatus, BugSeverity } from '../../../main/types'
 
 const route = useRoute()
 const router = useRouter()
 const bugStore = useBugStore()
-const workspace = useWorkspaceStore()
 
 const editing = ref(false)
+const editForm = ref({ title: '', description: '', severity: 'medium' as BugSeverity })
 
 onMounted(async () => {
   const bugId = route.params.bugId as string
@@ -50,17 +48,37 @@ function statusType(s: BugStatus): '' | 'danger' | 'warning' | 'info' | 'success
 
 async function changeStatus(newStatus: BugStatus): Promise<void> {
   if (!bug.value) return
-  const updated = { ...toRaw(bug.value), status: newStatus, updatedAt: new Date().toISOString() }
+  const updated: BugRecord = { ...JSON.parse(JSON.stringify(toRaw(bug.value))), status: newStatus, updatedAt: new Date().toISOString() }
   await bugStore.saveBug(updated)
   ElMessage.success(`状态已更新为「${statusLabel[newStatus]}」`)
 }
 
+function startEdit(): void {
+  if (!bug.value) return
+  editForm.value = {
+    title: bug.value.title,
+    description: bug.value.description,
+    severity: bug.value.severity
+  }
+  editing.value = true
+}
+
 async function saveBug(): Promise<void> {
   if (!bug.value) return
-  const updated = { ...toRaw(bug.value), updatedAt: new Date().toISOString() }
+  const updated: BugRecord = {
+    ...JSON.parse(JSON.stringify(toRaw(bug.value))),
+    title: editForm.value.title,
+    description: editForm.value.description,
+    severity: editForm.value.severity,
+    updatedAt: new Date().toISOString()
+  }
   await bugStore.saveBug(updated)
   editing.value = false
   ElMessage.success('已保存')
+}
+
+function cancelEdit(): void {
+  editing.value = false
 }
 
 function goBack(): void {
@@ -95,7 +113,7 @@ function goBack(): void {
     <!-- Info Section -->
     <el-descriptions border :column="2" class="info-section">
       <el-descriptions-item label="严重程度">
-        <el-select v-if="editing" v-model="bug.severity" size="small">
+        <el-select v-if="editing" v-model="editForm.severity" size="small">
           <el-option v-for="opt in severityOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
         <span v-else>{{ severityOptions.find(o => o.value === bug.severity)?.label }}</span>
@@ -110,13 +128,16 @@ function goBack(): void {
       <template #header>
         <div class="section-header">
           <span>描述</span>
-          <el-button v-if="!editing" text size="small" @click="editing = true">编辑</el-button>
-          <el-button v-else type="primary" size="small" @click="saveBug">保存</el-button>
+          <el-button v-if="!editing" text size="small" @click="startEdit">编辑</el-button>
+          <template v-else>
+            <el-button size="small" @click="cancelEdit">取消</el-button>
+            <el-button type="primary" size="small" @click="saveBug">保存</el-button>
+          </template>
         </div>
       </template>
       <el-input
         v-if="editing"
-        v-model="bug.description"
+        v-model="editForm.description"
         type="textarea"
         :rows="4"
         placeholder="Bug 详细描述"
@@ -143,7 +164,7 @@ function goBack(): void {
     <!-- Title Edit -->
     <el-card shadow="never" class="section" v-if="editing">
       <template #header>标题</template>
-      <el-input v-model="bug.title" />
+      <el-input v-model="editForm.title" />
     </el-card>
   </div>
 </template>

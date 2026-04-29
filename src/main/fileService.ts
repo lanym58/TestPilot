@@ -212,6 +212,13 @@ export function nextBugId(workspacePath: string): string {
   return `BUG-${String(maxNum + 1).padStart(4, '0')}`
 }
 
+export function createBugAtomic(workspacePath: string, bugWithoutId: Omit<BugRecord, 'id'>): BugRecord {
+  const id = nextBugId(workspacePath)
+  const bug: BugRecord = { ...bugWithoutId, id }
+  writeBug(workspacePath, bug)
+  return bug
+}
+
 // --- Screenshot ---
 
 export function writeScreenshot(

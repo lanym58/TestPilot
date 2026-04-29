@@ -3,7 +3,7 @@ import { join } from 'path'
 import * as fs from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
-import { registerIpcHandlers } from './ipcHandlers'
+import { registerIpcHandlers, isAuthorizedWorkspace } from './ipcHandlers'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -52,25 +52,33 @@ app.whenReady().then(() => {
   })
 })
 
-// --- Shortcuts (only active when window focused) ---
+// --- Shortcuts ---
+const SHORTCUTS: Array<{ key: string; channel: string }> = [
+  { key: 'CommandOrControl+Shift+S', channel: 'shortcut:screenshot' },
+  { key: 'CommandOrControl+Shift+P', channel: 'shortcut:pass' },
+  { key: 'CommandOrControl+Shift+F', channel: 'shortcut:fail' },
+  { key: 'CommandOrControl+Shift+M', channel: 'shortcut:manual-step' }
+]
+
+let shortcutsRegistered = false
+
 function registerShortcuts(): void {
   app.on('browser-window-focus', () => {
-    globalShortcut.register('CommandOrControl+Shift+S', () => {
-      BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:screenshot')
-    })
-    globalShortcut.register('CommandOrControl+Shift+P', () => {
-      BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:pass')
-    })
-    globalShortcut.register('CommandOrControl+Shift+F', () => {
-      BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:fail')
-    })
-    globalShortcut.register('CommandOrControl+Shift+M', () => {
-      BrowserWindow.getFocusedWindow()?.webContents.send('shortcut:manual-step')
-    })
+    if (shortcutsRegistered) return
+    for (const { key, channel } of SHORTCUTS) {
+      globalShortcut.register(key, () => {
+        BrowserWindow.getFocusedWindow()?.webContents.send(channel)
+      })
+    }
+    shortcutsRegistered = true
   })
 
   app.on('browser-window-blur', () => {
-    globalShortcut.unregisterAll()
+    if (!shortcutsRegistered) return
+    for (const { key } of SHORTCUTS) {
+      globalShortcut.unregister(key)
+    }
+    shortcutsRegistered = false
   })
 }
 
@@ -79,6 +87,7 @@ let fixesWatcher: fs.FSWatcher | null = null
 
 function registerFixesWatcher(): void {
   ipcMain.handle('watch:fixes', (_e, workspacePath: string) => {
+    if (!isAuthorizedWorkspace(workspacePath)) return
     if (fixesWatcher) {
       fixesWatcher.close()
     }

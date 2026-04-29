@@ -2,6 +2,7 @@
 import { ref, computed, toRaw } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import ScreenshotButton from './ScreenshotButton.vue'
 import { useSessionStore } from '../stores/sessionStore'
 import { useWorkspaceStore } from '../stores/workspaceStore'
 import { usePlanStore } from '../stores/planStore'
@@ -18,6 +19,13 @@ const session = useSessionStore()
 const workspace = useWorkspaceStore()
 const planStore = usePlanStore()
 const bugStore = useBugStore()
+
+// Screenshots captured during session
+const sessionScreenshots = ref<string[]>([])
+
+function onScreenshotCaptured(filename: string): void {
+  sessionScreenshots.value = [...sessionScreenshots.value, filename]
+}
 
 // Bug form dialog state
 const showBugDialog = ref(false)
@@ -108,7 +116,7 @@ async function submitBug(): Promise<void> {
       itemId: session.currentItem.id,
       stepsText,
       actions: JSON.parse(JSON.stringify(toRaw(session.actions))),
-      screenshots: [],
+      screenshots: [...sessionScreenshots.value],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
@@ -155,8 +163,8 @@ function goBack(): void {
 
     <div class="toolbar-actions">
       <ScreenshotButton
-        :bug-id="'TEMP'"
         :web-contents-id="webContentsId"
+        @captured="onScreenshotCaptured"
       />
       <el-button type="success" @click="markPassed">
         通过
@@ -202,10 +210,6 @@ function goBack(): void {
     </template>
   </el-dialog>
 </template>
-
-<script lang="ts">
-import ScreenshotButton from './ScreenshotButton.vue'
-</script>
 
 <style scoped>
 .test-toolbar {

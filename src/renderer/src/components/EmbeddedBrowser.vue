@@ -87,12 +87,27 @@ function bindWebview(wv: WebViewElement): void {
     session.browserUrl = event.url
   }))
 
+  const VALID_ACTION_TYPES = new Set(['click', 'input', 'scroll', 'navigate', 'observe'])
+
   wv.addEventListener('ipc-message', ((e: unknown) => {
     const event = e as { channel: string; args: unknown[] }
-    if (event.channel === 'recorder:action') {
-      const action = event.args[0] as Parameters<typeof session.addAction>[0]
-      session.addAction(action)
-    }
+    if (event.channel !== 'recorder:action') return
+
+    const raw = event.args[0]
+    if (typeof raw !== 'object' || raw === null) return
+    const a = raw as Record<string, unknown>
+    if (!VALID_ACTION_TYPES.has(a.type as string)) return
+
+    session.addAction({
+      type: a.type as 'click' | 'input' | 'scroll' | 'navigate' | 'observe',
+      selector: typeof a.selector === 'string' ? a.selector.slice(0, 200) : undefined,
+      label: typeof a.label === 'string' ? a.label.slice(0, 50) : undefined,
+      value: typeof a.value === 'string' ? a.value.slice(0, 500) : undefined,
+      url: typeof a.url === 'string' ? a.url.slice(0, 2000) : undefined,
+      target: typeof a.target === 'string' ? a.target.slice(0, 100) : undefined,
+      description: typeof a.description === 'string' ? a.description.slice(0, 500) : undefined,
+      timestamp: typeof a.timestamp === 'number' ? a.timestamp : Date.now()
+    })
   }))
 
   wv.addEventListener('dom-ready', () => {
