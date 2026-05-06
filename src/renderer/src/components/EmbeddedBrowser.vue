@@ -4,15 +4,17 @@ import { useSessionStore } from '../stores/sessionStore'
 
 const props = defineProps<{
   initialUrl?: string
+  fullscreen?: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'webcontents-id', id: number): void
+  (e: 'toggle-fullscreen'): void
 }>()
 
 const session = useSessionStore()
 const webviewRef = ref<HTMLElement | null>(null)
-const urlInput = ref(props.initialUrl || '')
+const urlInput = ref(props.initialUrl || session.browserUrl || '')
 const isLoading = ref(false)
 const canGoBack = ref(false)
 const canGoForward = ref(false)
@@ -78,13 +80,13 @@ function bindWebview(wv: WebViewElement): void {
   wv.addEventListener('did-navigate', ((e: unknown) => {
     const event = e as { url: string }
     urlInput.value = event.url
-    session.browserUrl = event.url
+    session.saveLastUrl(event.url)
   }))
 
   wv.addEventListener('did-navigate-in-page', ((e: unknown) => {
     const event = e as { url: string }
     urlInput.value = event.url
-    session.browserUrl = event.url
+    session.saveLastUrl(event.url)
   }))
 
   const VALID_ACTION_TYPES = new Set(['click', 'input', 'scroll', 'navigate', 'observe'])
@@ -117,8 +119,9 @@ function bindWebview(wv: WebViewElement): void {
     } catch { /* not available yet */ }
   })
 
-  if (props.initialUrl) {
-    wv.src = props.initialUrl
+  const autoUrl = props.initialUrl || session.browserUrl
+  if (autoUrl) {
+    wv.src = autoUrl
   }
 }
 
@@ -174,6 +177,12 @@ watch(() => props.initialUrl, (url) => {
           </el-button>
         </template>
       </el-input>
+
+      <el-tooltip :content="fullscreen ? '退出全屏 (Esc)' : '浏览器全屏'" placement="bottom">
+        <el-button size="small" @click="emit('toggle-fullscreen')">
+          {{ fullscreen ? '⊠' : '⊞' }}
+        </el-button>
+      </el-tooltip>
     </div>
 
     <webview
@@ -181,6 +190,7 @@ watch(() => props.initialUrl, (url) => {
       ref="webviewRef"
       class="browser-view"
       :preload="'file://' + recorderPreload"
+      partition="persist:testpilot"
     />
   </div>
 </template>

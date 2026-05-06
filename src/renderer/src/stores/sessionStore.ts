@@ -3,6 +3,7 @@ import { ref, computed, watch, toRaw } from 'vue'
 import type { ActionRecord, TestItem } from '../../../main/types'
 
 const DRAFT_KEY = 'testpilot_session_draft'
+const LAST_URL_PREFIX = 'testpilot_last_url_'
 const AUTO_SAVE_INTERVAL = 30_000
 
 export const useSessionStore = defineStore('session', () => {
@@ -20,8 +21,14 @@ export const useSessionStore = defineStore('session', () => {
     currentItem.value = item
     actions.value = []
     isRecording.value = true
-    browserUrl.value = ''
+    browserUrl.value = localStorage.getItem(LAST_URL_PREFIX + planId) || ''
     startAutoSave()
+  }
+
+  function saveLastUrl(url: string): void {
+    if (!currentPlanId.value || !url) return
+    browserUrl.value = url
+    localStorage.setItem(LAST_URL_PREFIX + currentPlanId.value, url)
   }
 
   function addAction(action: Omit<ActionRecord, 'seq'>): void {
@@ -101,6 +108,7 @@ export const useSessionStore = defineStore('session', () => {
     addAction,
     removeAction,
     clearSession,
+    saveLastUrl,
     saveDraft,
     restoreDraft
   }

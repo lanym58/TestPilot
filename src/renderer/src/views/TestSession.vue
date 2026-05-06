@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useSessionStore } from '../stores/sessionStore'
 import { usePlanStore } from '../stores/planStore'
@@ -14,6 +14,25 @@ const planStore = usePlanStore()
 
 const webContentsId = ref<number | undefined>()
 const sidebarWidth = ref(280)
+const browserFullscreen = ref(false)
+
+function toggleBrowserFullscreen(): void {
+  browserFullscreen.value = !browserFullscreen.value
+}
+
+function onEscKey(e: KeyboardEvent): void {
+  if (e.key === 'Escape' && browserFullscreen.value) {
+    browserFullscreen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onEscKey)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onEscKey)
+})
 
 onMounted(async () => {
   const planId = route.params.planId as string
@@ -49,11 +68,11 @@ function onWebContentsId(id: number): void {
 </script>
 
 <template>
-  <div class="test-session">
-    <TestToolbar :web-contents-id="webContentsId" />
+  <div class="test-session" :class="{ 'browser-maximized': browserFullscreen }">
+    <TestToolbar v-show="!browserFullscreen" :web-contents-id="webContentsId" />
 
     <div class="session-body">
-      <div class="sidebar" :style="{ width: sidebarWidth + 'px' }">
+      <div v-show="!browserFullscreen" class="sidebar" :style="{ width: sidebarWidth + 'px' }">
         <ActionRecorder />
 
         <div class="test-points" v-if="session.currentItem">
@@ -65,7 +84,11 @@ function onWebContentsId(id: number): void {
       </div>
 
       <div class="browser-area">
-        <EmbeddedBrowser @webcontents-id="onWebContentsId" />
+        <EmbeddedBrowser
+          @webcontents-id="onWebContentsId"
+          :fullscreen="browserFullscreen"
+          @toggle-fullscreen="toggleBrowserFullscreen"
+        />
       </div>
     </div>
   </div>
@@ -76,6 +99,16 @@ function onWebContentsId(id: number): void {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.test-session.browser-maximized {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: #fff;
 }
 
 .session-body {
